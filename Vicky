@@ -1,0 +1,65 @@
+Sub CopyEmailDataFromOutlook()
+    Dim olApp As Outlook.Application
+    Dim olNamespace As Outlook.Namespace
+    Dim myrecipient As Outlook.Recipient
+    Dim olSharedFolder As Outlook.MAPIFolder
+    Dim olItems As Outlook.Items
+    Dim olItem As Outlook.MailItem
+    Dim i As Long
+    
+    ' Create Outlook application instance
+    Set olApp = New Outlook.Application
+    
+    ' Get the shared mailbox; update your "Shared Mailbox Name" below
+    Set olNamespace = olApp.GetNamespace("MAPI")
+    Set myrecipient = olNamespace.CreateRecipient("Manoj.Ethiraj@flsmidth.com")
+    
+    ' Set olSharedFolder to the Inbox of the shared mailbox
+    Set olSharedFolder = olNamespace.GetSharedDefaultFolder(myrecipient, olFolderInbox)
+    
+    ' Create an Excel workbook and worksheet
+    Dim wb As Workbook
+    Dim ws As Worksheet
+    Set wb = ThisWorkbook
+    Set ws = wb.Worksheets("Sheet1") ' Change the sheet name as needed
+    
+    ' Set the starting row in Excel
+    Dim startRow As Long
+    startRow = 2 ' Start from row 2 to leave space for headers
+    
+    ' Process all folders and subfolders
+    ProcessAllFolders olSharedFolder.Folders, ws, startRow
+    
+    ' Clean up objects
+    Set olItem = Nothing
+    Set olItems = Nothing
+    Set olSharedFolder = Nothing
+    Set olNamespace = Nothing
+    Set olApp = Nothing
+End Sub
+
+Sub ProcessAllFolders(folders As Outlook.Folders, ByVal ws As Worksheet, ByRef startRow As Long)
+    Dim folder As Outlook.MAPIFolder
+    Dim olItems As Outlook.Items
+    Dim olItem As Outlook.MailItem
+    
+    For Each folder In folders
+        ' Get the items in the folder
+        Set olItems = folder.Items
+        olItems.Sort "ReceivedTime", True
+        
+        ' Loop through each email item in the folder
+        For Each olItem In olItems
+            ' Copy subject and received date to Excel
+            ws.Cells(startRow, 1).Value = olItem.Subject
+            ws.Cells(startRow, 2).Value = olItem.ReceivedTime
+            
+            startRow = startRow + 1 ' Move to the next row
+        Next olItem
+        
+        ' Check for subfolders and process them recursively
+        If folder.Folders.Count > 0 Then
+            ProcessAllFolders folder.Folders, ws, startRow
+        End If
+    Next folder
+End Sub
